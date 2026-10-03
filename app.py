@@ -368,7 +368,7 @@ def is_temporary_gemini_error(e):
     ])
 
 def analyze_issue_with_gemini(api_key, text_description, building, room, image=None):
-    """Call Google Gemini Vision API (or clearly labeled offline fallback) to triage incident."""
+    """Call Google Gemini Vision API to triage incident. Returns (triage_dict, is_offline, error_msg)."""
     prompt_content = f"""
 Building Location: {building}
 Room / Area: {room}
@@ -378,7 +378,7 @@ Analyze this maintenance report according to your system instructions.
 """
     
     if not api_key:
-        return generate_mock_triage_result(text_description, building, room), True
+        return generate_mock_triage_result(text_description, building, room), True, None
 
     # Try modern google-genai SDK with gemini-3.8-flash and 3-attempt exponential backoff on temporary 503 errors
     max_retries = 3
@@ -399,7 +399,7 @@ Analyze this maintenance report according to your system instructions.
                     contents=contents
                 )
                 cleaned_json = response.text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-                return json.loads(cleaned_json), False
+                return json.loads(cleaned_json), False, None
             except Exception as e_attempt:
                 if attempt < max_retries - 1 and is_temporary_gemini_error(e_attempt):
                     time.sleep(delays[attempt])
@@ -407,11 +407,7 @@ Analyze this maintenance report according to your system instructions.
                     raise e_attempt
     except Exception as e_genai:
         err_diag = sanitize_gemini_error(e_genai, api_key)
-        if is_temporary_gemini_error(e_genai):
-            st.warning(f"⚠️ Gemini API is temporarily unavailable due to high demand after {max_retries} attempts [{err_diag}]. Displaying offline fallback.")
-        else:
-            st.warning(f"⚠️ Gemini API Call Diagnostic Info: {err_diag}")
-        return generate_mock_triage_result(text_description, building, room), True
+        return None, True, err_diag
 
 def generate_mock_triage_result(text_desc, building, room):
     """Generates an offline demo response clearly labeled [DEMO / OFFLINE MODE]."""
@@ -685,35 +681,50 @@ if navigation == "📝 Report New Issue":
             st.error("⚠️ Please fill out the room number, issue title, and description before submitting.")
         else:
             with st.spinner("🔍 Gemini AI is analyzing image & text, scoring safety hazards, and assigning department..."):
-                triage_res, is_offline = analyze_issue_with_gemini(get_api_key(), f"{issue_title} - {description}", building, room, uploaded_img)
+                triage_res, is_offline, err_msg = analyze_issue_with_gemini(get_api_key(), f"{issue_title} - {description}", building, room, uploaded_img)
                 
-                new_id = f"CF-2026-{random.randint(1000, 9999)}"
-                new_ticket = {
-                    "ticket_id": new_id,
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "reporter": reporter_name if reporter_name else "Anonymous Campus Occupant",
-                    "reporter_email": reporter_email if reporter_email else "not-provided@campus.edu",
-                    "building": building,
-                    "room": room,
-                    "title": issue_title,
-                    "description": description,
-                    "category": triage_res.get("category", "Other Facilities Issue"),
-                    "urgency": triage_res.get("urgency", "Medium Priority"),
-                    "urgency_score": triage_res.get("urgency_score", 5),
-                    "assigned_department": triage_res.get("assigned_department", "Facilities Operations"),
-                    "status": "Pending",
-                    "summary": triage_res.get("summary", "Issue reported."),
-                    "suggested_action_plan": triage_res.get("suggested_action_plan", []),
-                    "required_tools": triage_res.get("required_tools_equipment", []),
-                    "estimated_repair_time": triage_res.get("estimated_repair_time", "1-2 hours"),
-                    "technician_notes": ""
-                }
-                
-                st.session_state.tickets.insert(0, new_ticket)
-                save_tickets(st.session_state.tickets)
-                st.session_state.active_ticket = new_ticket
-                st.session_state.chat_history = []
-                st.session_state.created_ticket_id = new_id
+                if triage_res is not None:
+                    new_id = f"CF-2026-{random.randint(1000, 9999)}"
+                    new_ticket = {
+                        "ticket_id": new_id,
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "reporter": reporter_name if reporter_name else "Anonymous Campus Occupant",
+                        "reporter_email": reporter_email if reporter_email else "not-provided@campus.edu",
+                        "building": building,
+                        "room": room,
+                        "title": issue_title,
+                        "description": description,
+                        "category": triage_res.get("category", "Other Facilities Issue"),
+                        "urgency": triage_res.get("urgency", "Medium Priority"),
+                        "urgency_score": triage_res.get("urgency_score", 5),
+                        "assigned_department": triage_res.get("assigned_department", "Facilities Operations"),
+                        "status": "Pending",
+                        "summary": triage_res.get("summary", "Issue reported."),
+                        "suggested_action_plan": triage_res.get("suggested_action_plan", []),
+                        "required_tools": triage_res.get("required_tools_equipment", []),
+                        "estimated_repair_time": triage_res.get("estimated_repair_time", "1-2 hours"),
+                        "technician_notes": ""
+                    }
+                    
+                    st.session_state.tickets.insert(0, new_ticket)
+                    save_tickets(st.session_state.tickets)
+                    st.session_state.active_ticket = new_ticket
+                    st.session_state.chat_history = []
+                    st.session_state.created_ticket_id = new_id
+                else:
+                    # Clear any stale session state on failure
+                    st.session_state.active_ticket = None
+                    st.session_state.chat_history = []
+                    if "created_ticket_id" in st.session_state:
+                        del st.session_state.created_ticket_id
+                        
+                    if err_msg and ("503" in err_msg or "unavailable" in err_msg.lower() or "high demand" in err_msg.lower()):
+                        st.warning("⚠️ **Gemini AI is temporarily unavailable due to high server demand.** Please try clicking Analyze & Submit again in a moment.")
+                    else:
+                        st.error("❌ **Gemini AI Request Failed.** Please verify network/credentials and try again.")
+                    
+                    if err_msg:
+                        st.caption(f"Technical Diagnostic: {err_msg}")
 
     # Render Triage Results & Interactive Chat if active ticket exists
     current_ticket = st.session_state.active_ticket
