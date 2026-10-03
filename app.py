@@ -29,7 +29,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Inject Premium Dark SaaS CSS Styling
+# Inject Premium Dark SaaS CSS Styling & Responsive Mobile Breakpoints
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
@@ -39,6 +39,7 @@ st.markdown("""
         background-color: #0b0f19;
         font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
         color: #f1f5f9;
+        overflow-x: hidden !important;
     }
     
     /* Clean Chrome & Hide Default Clutter & Sidebar */
@@ -108,6 +109,7 @@ st.markdown("""
         cursor: pointer !important;
         transition: all 0.2s ease !important;
         white-space: nowrap !important;
+        word-break: keep-all !important;
     }
 
     /* Hover State */
@@ -364,6 +366,98 @@ st.markdown("""
         background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
         box-shadow: 0 6px 20px rgba(2, 132, 199, 0.4) !important;
         transform: translateY(-1px);
+    }
+
+    /* =========================================================
+       RESPONSIVE MOBILE BREAKPOINTS (<= 768px & <= 480px)
+       Desktop layout (>768px) remains completely untouched!
+       ========================================================= */
+    @media (max-width: 768px) {
+        .stMainBlockContainer {
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+            padding-top: 0.8rem !important;
+            max-width: 100% !important;
+        }
+
+        /* Responsive Top Navbar */
+        div[data-testid="stRadio"] div[role="radiogroup"] {
+            flex-wrap: wrap !important;
+            justify-content: flex-start !important;
+            gap: 6px !important;
+        }
+
+        div[data-testid="stRadio"] div[role="radiogroup"] label[data-baseweb="radio"] {
+            padding: 6px 12px !important;
+            font-size: 0.82rem !important;
+            white-space: nowrap !important;
+            word-break: keep-all !important;
+            flex-grow: 1 !important;
+            text-align: center !important;
+            justify-content: center !important;
+        }
+
+        /* KPI Cards 2x2 Grid on Mobile */
+        .kpi-grid-wrapper > div[data-testid="stHorizontalBlock"] {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 10px !important;
+        }
+
+        .kpi-grid-wrapper > div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+
+        .kpi-card {
+            padding: 12px 14px !important;
+        }
+
+        .kpi-value {
+            font-size: 1.45rem !important;
+        }
+
+        .kpi-label {
+            font-size: 0.7rem !important;
+        }
+
+        /* Report Form Ordering: 01 Details -> 02 Upload Evidence -> 03 Describe Issue */
+        .report-workflow-grid > div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        .step-box-1 { order: 1 !important; }
+        .step-box-2 { order: 2 !important; margin-top: 14px; margin-bottom: 14px; }
+        .step-box-3 { order: 3 !important; }
+
+        /* Full Width Buttons on Mobile */
+        .stButton > button {
+            width: 100% !important;
+        }
+
+        /* Mobile Action Cards Padding */
+        .action-card, .triage-card-v2, .step-card {
+            padding: 16px !important;
+            border-radius: 12px !important;
+        }
+
+        /* Responsive Chart Scaling */
+        .js-plotly-plot, .plot-container {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        div[data-testid="stRadio"] div[role="radiogroup"] label[data-baseweb="radio"] {
+            font-size: 0.78rem !important;
+            padding: 5px 8px !important;
+        }
+        
+        .kpi-value {
+            font-size: 1.3rem !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -849,7 +943,7 @@ with nav_col3:
                 st.info("ℹ️ Resend Key not set in secrets.toml")
 
 # ---------------------------------------------------------
-# DASHBOARD SUMMARY KPI CARDS
+# DASHBOARD SUMMARY KPI CARDS (2x2 Grid on Mobile)
 # ---------------------------------------------------------
 total_tickets = len(st.session_state.tickets)
 high_priority_count = sum(1 for t in st.session_state.tickets if any(term in str(t.get("urgency", "")).lower() for term in ["emergency", "high"]) or t.get("urgency_score", 0) >= 7)
@@ -857,6 +951,7 @@ pending_count = sum(1 for t in st.session_state.tickets if t.get("status") == "P
 ai_indicator = "Online" if has_api else "Demo Mode"
 ai_color = "#22c55e" if has_api else "#f59e0b"
 
+st.markdown('<div class="kpi-grid-wrapper">', unsafe_allow_html=True)
 kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4)
 with kpi_c1:
     st.markdown(f"""
@@ -894,6 +989,7 @@ with kpi_c4:
     </div>
     """, unsafe_allow_html=True)
 
+st.markdown('</div>', unsafe_allow_html=True)
 st.write("")
 
 # ---------------------------------------------------------
@@ -923,10 +1019,12 @@ if navigation == NAV_REPORT:
                 del st.session_state["cam_key"]
             st.rerun()
 
-    # 3-Step Visual Workflow Layout
+    # 3-Step Visual Workflow Layout (Desktop 2-Col / Mobile Single Column 01 -> 02 -> 03)
+    st.markdown('<div class="report-workflow-grid">', unsafe_allow_html=True)
     col1, col2 = st.columns([1, 1], gap="large")
     
     with col1:
+        st.markdown('<div class="step-box-1">', unsafe_allow_html=True)
         st.markdown("""
         <div class="step-card">
             <div class="step-header">
@@ -952,7 +1050,9 @@ if navigation == NAV_REPORT:
             ]
         )
         room = st.text_input("Room Number / Specific Area", placeholder="e.g. Room 304, 2nd Floor Restroom", key="room_key")
+        st.markdown('</div>', unsafe_allow_html=True)
 
+        st.markdown('<div class="step-box-3">', unsafe_allow_html=True)
         st.markdown("""
         <div class="step-card" style="margin-top: 20px;">
             <div class="step-header">
@@ -962,8 +1062,10 @@ if navigation == NAV_REPORT:
         """, unsafe_allow_html=True)
         issue_title = st.text_input("Issue Title", placeholder="e.g. Broken water pipe leaking on floor", key="title_key")
         description = st.text_area("Detailed Description of Problem", placeholder="Describe what you observed, sound, smell, or safety concerns...", height=120, key="desc_key")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
+        st.markdown('<div class="step-box-2">', unsafe_allow_html=True)
         st.markdown("""
         <div class="step-card">
             <div class="step-header">
@@ -985,6 +1087,9 @@ if navigation == NAV_REPORT:
             if camera_file:
                 uploaded_img = Image.open(camera_file)
                 st.image(uploaded_img, caption="Captured Image Preview", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     submit_btn = st.button("✨ Analyze & Submit with AI", type="primary", use_container_width=True)
     
@@ -1115,9 +1220,9 @@ if navigation == NAV_REPORT:
 
         st.caption("* Disclaimer: AI triage recommendations are generated to assist facilities operations and do not replace official emergency response procedures.")
                 
-        # ---------------------------------------------------------
+        # -----------------------------------------------------
         # 📧 EMAIL DISPATCH SECTION
-        # ---------------------------------------------------------
+        # -----------------------------------------------------
         st.markdown("""
         <div class="action-card">
             <h4 style="color: #f8fafc; margin: 0 0 6px 0;">📧 Dispatch Official Maintenance Report</h4>
@@ -1138,9 +1243,9 @@ if navigation == NAV_REPORT:
                     else:
                         st.error(f"❌ Email sending failed: {email_msg}")
 
-        # ---------------------------------------------------------
+        # -----------------------------------------------------
         # 💬 REAL GEMINI MULTI-TURN CHAT SECTION
-        # ---------------------------------------------------------
+        # -----------------------------------------------------
         st.markdown("""
         <div class="action-card">
             <h4 style="color: #38bdf8; margin: 0 0 4px 0;">💬 CampusFix AI Assistant</h4>
