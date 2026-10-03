@@ -1,6 +1,6 @@
 """
-CampusFix-AI: Intelligent Campus Maintenance & Triage System
-Main Streamlit Application File with Gemini Vision + Multi-Turn Chat + Resend Email API Dispatch
+CampusFix: Intelligent Campus Maintenance & Operations SaaS System
+Streamlit Application File with Gemini Vision + Multi-Turn Chat + Resend Email API Dispatch
 """
 
 import json
@@ -20,124 +20,350 @@ import streamlit as st
 import prompts
 
 # ---------------------------------------------------------
-# Page Configuration & Custom CSS Styling
+# Page Configuration & Custom SaaS CSS Styling
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="CampusFix-AI | Infrastructure & Maintenance Triage",
-    page_icon="🏫",
+    page_title="CampusFix | Campus Operations & Facilities Management",
+    page_icon="🛠️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Inject Modern Dark UI CSS Styling
+# Inject Premium Dark SaaS CSS Styling
 st.markdown("""
 <style>
-    /* Main Theme Overrides */
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+    /* Main Application Overrides */
     .stApp {
-        background-color: #0e1117;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background-color: #0b0f19;
+        font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+        color: #f1f5f9;
     }
     
-    /* Header Banner */
-    .header-banner {
-        background: linear-gradient(135deg, #1e2640 0%, #0f172a 100%);
+    /* Clean Chrome & Hide Default Clutter & Sidebar */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header[data-testid="stHeader"] {background: transparent; display: none !important;}
+    section[data-testid="stSidebar"] {display: none !important;}
+    
+    /* Expand Main Container to Full Width */
+    .stMainBlockContainer {
+        padding-top: 1.2rem !important;
+        max-width: 98% !important;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #0b0f19;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #1e293b;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #334155;
+    }
+
+    /* Top Navbar Wrapper */
+    .top-navbar-wrapper {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         border: 1px solid #334155;
-        border-radius: 12px;
-        padding: 24px;
-        margin-bottom: 24px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        border-radius: 16px;
+        padding: 10px 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Horizontal Radio Group Top Navbar Styling */
+    div[data-testid="stRadio"] div[role="radiogroup"] {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex-wrap: nowrap !important;
+    }
+
+    /* Hide Radio Dots/Circles */
+    div[data-testid="stRadio"] div[role="radiogroup"] label[data-baseweb="radio"] > div:first-child {
+        display: none !important;
+    }
+
+    /* Horizontal Navbar Items */
+    div[data-testid="stRadio"] div[role="radiogroup"] label[data-baseweb="radio"] {
+        background-color: transparent !important;
+        border: 1px solid transparent !important;
+        border-bottom: 3px solid transparent !important;
+        border-radius: 8px !important;
+        padding: 8px 14px !important;
+        margin: 0 !important;
+        color: #94a3b8 !important;
+        font-size: 0.88rem !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        white-space: nowrap !important;
+    }
+
+    /* Hover State */
+    div[data-testid="stRadio"] div[role="radiogroup"] label[data-baseweb="radio"]:hover {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+    }
+
+    /* Checked / Active Top Navbar Item State */
+    div[data-testid="stRadio"] div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) {
+        background: rgba(2, 132, 199, 0.2) !important;
+        border: 1px solid rgba(56, 189, 248, 0.3) !important;
+        border-bottom: 3px solid #38bdf8 !important;
+        color: #38bdf8 !important;
+        font-weight: 700 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.2) !important;
+    }
+
+    div[data-testid="stRadio"] div[role="radiogroup"] label[data-baseweb="radio"][aria-checked="true"] {
+        background: rgba(2, 132, 199, 0.2) !important;
+        border: 1px solid rgba(56, 189, 248, 0.3) !important;
+        border-bottom: 3px solid #38bdf8 !important;
+        color: #38bdf8 !important;
+        font-weight: 700 !important;
+        border-radius: 8px !important;
+    }
+
+    /* Popover Button Styling */
+    div[data-testid="stPopover"] > button {
+        background-color: #0f172a !important;
+        border: 1px solid #334155 !important;
+        color: #e2e8f0 !important;
+        border-radius: 8px !important;
+        padding: 4px 12px !important;
+        font-size: 0.8rem !important;
+        height: 34px !important;
+    }
+
+    .status-badge {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid #0284c7;
+        color: #38bdf8;
+        padding: 6px 14px;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 2px 10px rgba(56, 189, 248, 0.15);
     }
     
-    .header-title {
-        color: #f8fafc;
-        font-size: 2.2rem;
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #22c55e;
+        border-radius: 50%;
+        box-shadow: 0 0 10px #22c55e;
+    }
+
+    .pulse-dot-demo {
+        width: 8px;
+        height: 8px;
+        background-color: #f59e0b;
+        border-radius: 50%;
+        box-shadow: 0 0 10px #f59e0b;
+    }
+
+    /* KPI Summary Cards */
+    .kpi-card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 14px;
+        padding: 18px 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    
+    .kpi-card:hover {
+        border-color: #38bdf8;
+        transform: translateY(-2px);
+    }
+
+    .kpi-value {
+        font-size: 1.9rem;
         font-weight: 800;
-        margin: 0;
+        color: #f8fafc;
+        margin-bottom: 2px;
+    }
+
+    .kpi-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #94a3b8;
+    }
+
+    /* Workflow Step Cards */
+    .step-card {
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin-bottom: 14px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .step-header {
         display: flex;
         align-items: center;
         gap: 12px;
-    }
-    
-    .header-subtitle {
-        color: #94a3b8;
         font-size: 1.05rem;
-        margin-top: 6px;
-    }
-    
-    /* Metric Cards */
-    .metric-card {
-        background-color: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 10px;
-        padding: 16px;
-        text-align: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    }
-    .metric-value {
-        font-size: 1.8rem;
         font-weight: 700;
         color: #38bdf8;
     }
-    .metric-label {
-        font-size: 0.9rem;
-        color: #94a3b8;
+
+    .step-num {
+        background: #0284c7;
+        color: #ffffff;
+        min-width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 800;
+    }
+
+    /* Polished Triage Card */
+    .triage-card-v2 {
+        background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+        border: 1px solid #38bdf8;
+        border-radius: 16px;
+        padding: 24px;
+        margin-top: 20px;
+        box-shadow: 0 10px 30px rgba(56, 189, 248, 0.12);
+    }
+
+    /* Action & Section Cards */
+    .action-card {
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 14px;
+        padding: 20px;
+        margin-top: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }
 
     /* Urgency Badges */
     .badge-emergency {
-        background-color: #7f1d1d;
+        background-color: #450a0a;
         color: #fca5a5;
         border: 1px solid #ef4444;
-        padding: 4px 12px;
+        padding: 6px 14px;
         border-radius: 20px;
-        font-weight: 700;
+        font-weight: 800;
         font-size: 0.85rem;
     }
     .badge-high {
-        background-color: #7c2d12;
+        background-color: #431407;
         color: #fdba74;
         border: 1px solid #f97316;
-        padding: 4px 12px;
+        padding: 6px 14px;
         border-radius: 20px;
-        font-weight: 700;
+        font-weight: 800;
         font-size: 0.85rem;
     }
     .badge-medium {
-        background-color: #713f12;
+        background-color: #422006;
         color: #fde047;
         border: 1px solid #eab308;
-        padding: 4px 12px;
+        padding: 6px 14px;
         border-radius: 20px;
-        font-weight: 700;
+        font-weight: 800;
         font-size: 0.85rem;
     }
     .badge-low {
-        background-color: #14532d;
+        background-color: #052e16;
+        color: #86efac;
+        border: 1px solid #22c55e;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 800;
+        font-size: 0.85rem;
+    }
+
+    /* Status Badges */
+    .badge-status-pending {
+        background-color: #431407;
+        color: #fdba74;
+        border: 1px solid #f97316;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+    .badge-status-inprog {
+        background-color: #422006;
+        color: #fde047;
+        border: 1px solid #eab308;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+    .badge-status-resolved {
+        background-color: #052e16;
         color: #86efac;
         border: 1px solid #22c55e;
         padding: 4px 12px;
-        border-radius: 20px;
-        font-weight: 700;
-        font-size: 0.85rem;
-    }
-    
-    /* Analysis Result Card */
-    .triage-card {
-        background-color: #0f172a;
-        border: 1px solid #38bdf8;
         border-radius: 12px;
-        padding: 20px;
-        margin-top: 16px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+
+    /* Form & Input Styling Overrides */
+    div[data-baseweb="input"] {
+        background-color: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+        border-radius: 8px !important;
     }
     
-    .demo-tag {
-        background-color: #b45309;
-        color: #fef08a;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
+    div[data-baseweb="select"] > div {
+        background-color: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+        border-radius: 8px !important;
+    }
+
+    textarea {
+        background-color: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+        border-radius: 8px !important;
+    }
+
+    .stButton>button {
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+
+    .stButton>button[kind="primary"] {
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+        border: 1px solid #38bdf8 !important;
+        box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3) !important;
+    }
+
+    .stButton>button[kind="primary"]:hover {
+        background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
+        box-shadow: 0 6px 20px rgba(2, 132, 199, 0.4) !important;
+        transform: translateY(-1px);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -272,7 +498,7 @@ def send_maintenance_email(ticket):
 
         subject = f"CampusFix Maintenance Report - [{ticket.get('title', 'Campus Issue')}]"
         
-        body = f"""CampusFix-AI Official Facilities Maintenance Incident Report
+        body = f"""CampusFix Official Facilities Maintenance Incident Report
 ----------------------------------------------------------------------
 Ticket ID:           {ticket.get('ticket_id')}
 Date & Time:         {ticket.get('timestamp')}
@@ -310,7 +536,7 @@ SAFETY HAZARDS & PRECAUTIONS:
         body += ", ".join(ticket.get('required_tools', [])) + "\n"
         
         body += "\n----------------------------------------------------------------------\n"
-        body += "Automated Facilities Dispatch generated by CampusFix-AI System via Resend."
+        body += "Automated Facilities Dispatch generated by CampusFix System via Resend."
 
         params = {
             "from": "CampusFix Dispatch <onboarding@resend.dev>",
@@ -548,72 +774,136 @@ def generate_ai_insights(api_key, tickets_df):
         return f"Unable to generate live AI insights [{err_diag}]."
 
 # ---------------------------------------------------------
-# Sidebar Navigation & Settings
+# TOP HORIZONTAL NAVBAR & BRANDING
 # ---------------------------------------------------------
-with st.sidebar:
-    st.image("https://img.icons8.com/isometric/100/school.png", width=70)
-    st.title("CampusFix-AI")
-    st.caption("Smart Campus Operations Triage")
-    
-    st.divider()
-    
+NAV_REPORT = "📝 Report Issue"
+NAV_TRACKING = "🎫 Tickets"
+NAV_WORKSTATION = "🔧 Technician"
+NAV_ANALYTICS = "📊 Analytics"
+NAV_KNOWLEDGE = "📚 Knowledge"
+
+has_api = bool(get_api_key())
+dot_class = "pulse-dot" if has_api else "pulse-dot-demo"
+ai_status_text = "AI Online" if has_api else "AI Offline Demo"
+
+nav_col1, nav_col2, nav_col3 = st.columns([1.3, 3.2, 1.3], gap="small")
+
+with nav_col1:
+    st.markdown("""
+    <div style="display: flex; align-items: center; gap: 10px; padding: 2px 0;">
+        <span style="font-size: 1.8rem; line-height: 1;">🛠️</span>
+        <div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: #f8fafc; letter-spacing: -0.02em; line-height: 1.1;">CampusFix</div>
+            <div style="font-size: 0.75rem; font-weight: 600; color: #38bdf8; margin-top: 1px;">See it. Report it. Fix it.</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with nav_col2:
     navigation = st.radio(
-        "Navigation Menu",
+        "Top Navigation",
         [
-            "📝 Report New Issue",
-            "📋 Ticket Tracking & Search",
-            "🛠️ Technician Workstation",
-            "📊 Analytics & AI Insights",
-            "💡 Self-Help Knowledge Base"
-        ]
+            NAV_REPORT,
+            NAV_TRACKING,
+            NAV_WORKSTATION,
+            NAV_ANALYTICS,
+            NAV_KNOWLEDGE
+        ],
+        horizontal=True,
+        label_visibility="collapsed"
     )
-    
-    st.divider()
-    
-    # API & Secret Status Panel
-    api_key_val = get_api_key()
-    with st.expander("🔑 Service Credentials Status", expanded=not bool(api_key_val)):
-        if api_key_val:
-            st.success("✅ Gemini API Key Connected")
-        else:
-            st.warning("⚠️ No Gemini API Key set. (Running in DEMO / OFFLINE MODE)")
-            
-        user_key_input = st.text_input("Enter Gemini API Key:", type="password", key="key_input_box")
-        if user_key_input:
-            st.session_state.user_api_key = user_key_input
-            st.rerun()
 
-        st.divider()
-        st.caption("📧 Resend Email API Status:")
-        resend_key = st.secrets.get("RESEND_API_KEY")
-        maint_email = st.secrets.get("MAINTENANCE_EMAIL")
-        if resend_key and resend_key not in ["your_resend_api_key", "your-resend-api-key"]:
-            st.success("✅ Resend API Key Connected")
-            st.caption(f"Default Recipient: {maint_email}")
-        else:
-            st.info("ℹ️ Resend API Key not set in .streamlit/secrets.toml")
+with nav_col3:
+    status_col_a, status_col_b = st.columns([1.2, 1])
+    with status_col_a:
+        st.markdown(f"""
+        <div style="display: flex; justify-content: flex-end; align-items: center; height: 38px;">
+            <div class="status-badge" style="padding: 6px 12px; font-size: 0.78rem;">
+                <span class="{dot_class}"></span>
+                <span>{ai_status_text}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    with status_col_b:
+        api_key_val = get_api_key()
+        with st.popover("⚡ Status"):
+            st.markdown("#### ⚡ Service Credentials Status")
+            if api_key_val:
+                st.success("✅ Gemini API Connected")
+            else:
+                st.warning("⚠️ No Gemini API Key set (DEMO Mode)")
+                
+            user_key_input = st.text_input("Enter Gemini API Key:", type="password", key="key_input_box")
+            if user_key_input:
+                st.session_state.user_api_key = user_key_input
+                st.rerun()
+
+            st.divider()
+            st.caption("📧 Resend Email API Status:")
+            resend_key = st.secrets.get("RESEND_API_KEY")
+            maint_email = st.secrets.get("MAINTENANCE_EMAIL")
+            if resend_key and resend_key not in ["your_resend_api_key", "your-resend-api-key"]:
+                st.success("✅ Resend Connected")
+                st.caption(f"Recipient: {maint_email}")
+            else:
+                st.info("ℹ️ Resend Key not set in secrets.toml")
 
 # ---------------------------------------------------------
-# Header Banner
+# DASHBOARD SUMMARY KPI CARDS
 # ---------------------------------------------------------
-st.markdown("""
-<div class="header-banner">
-    <div class="header-title">
-        <span>🏫</span> CampusFix-AI Triage System
+total_tickets = len(st.session_state.tickets)
+high_priority_count = sum(1 for t in st.session_state.tickets if any(term in str(t.get("urgency", "")).lower() for term in ["emergency", "high"]) or t.get("urgency_score", 0) >= 7)
+pending_count = sum(1 for t in st.session_state.tickets if t.get("status") == "Pending")
+ai_indicator = "Online" if has_api else "Demo Mode"
+ai_color = "#22c55e" if has_api else "#f59e0b"
+
+kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4)
+with kpi_c1:
+    st.markdown(f"""
+    <div class="kpi-card">
+        <div class="kpi-label">TOTAL TICKETS</div>
+        <div class="kpi-value">{total_tickets}</div>
+        <div style="font-size: 0.75rem; color: #64748b;">Active campus records</div>
     </div>
-    <div class="header-subtitle">
-        AI-Powered Multimodal Incident Triage, Interactive Gemini Chat & Automated Facilities Dispatch
+    """, unsafe_allow_html=True)
+
+with kpi_c2:
+    st.markdown(f"""
+    <div class="kpi-card">
+        <div class="kpi-label">HIGH PRIORITY</div>
+        <div class="kpi-value" style="color: #ef4444;">{high_priority_count}</div>
+        <div style="font-size: 0.75rem; color: #64748b;">Urgent / Emergency</div>
     </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+
+with kpi_c3:
+    st.markdown(f"""
+    <div class="kpi-card">
+        <div class="kpi-label">PENDING</div>
+        <div class="kpi-value" style="color: #f59e0b;">{pending_count}</div>
+        <div style="font-size: 0.75rem; color: #64748b;">Awaiting dispatch</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with kpi_c4:
+    st.markdown(f"""
+    <div class="kpi-card">
+        <div class="kpi-label">AI STATUS</div>
+        <div class="kpi-value" style="color: {ai_color}; font-size: 1.5rem; margin-top: 4px;">{ai_indicator}</div>
+        <div style="font-size: 0.75rem; color: #64748b;">{"gemini-3.8-flash" if has_api else "Offline Triage"}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.write("")
 
 # ---------------------------------------------------------
 # TAB 1: REPORT NEW ISSUE
 # ---------------------------------------------------------
-if navigation == "📝 Report New Issue":
+if navigation == NAV_REPORT:
     head_col1, head_col2 = st.columns([3, 1])
     with head_col1:
-        st.subheader("📝 Report Campus Maintenance or Safety Issue")
+        st.subheader("📝 Report Campus Maintenance Issue")
+        st.caption("Complete the 3-step visual workflow below to submit an incident for AI visual triage and dispatch.")
     with head_col2:
         if st.button("🔄 Start New Report", use_container_width=True):
             st.session_state.active_ticket = None
@@ -633,11 +923,18 @@ if navigation == "📝 Report New Issue":
                 del st.session_state["cam_key"]
             st.rerun()
 
-    st.write("Upload a photo or enter details of the physical defect. CampusFix-AI will analyze safety hazards, triage the incident, launch an interactive follow-up chat, and dispatch an official email report.")
-    
-    col1, col2 = st.columns([1, 1])
+    # 3-Step Visual Workflow Layout
+    col1, col2 = st.columns([1, 1], gap="large")
     
     with col1:
+        st.markdown("""
+        <div class="step-card">
+            <div class="step-header">
+                <span class="step-num">01</span> Reporter Details & Location
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
         reporter_name = st.text_input("Your Name", placeholder="e.g. Alex Rivera", key="reporter_name_key")
         reporter_email = st.text_input("Your Email Address", placeholder="e.g. arivera@campus.edu", key="reporter_email_key")
         building = st.selectbox(
@@ -655,11 +952,26 @@ if navigation == "📝 Report New Issue":
             ]
         )
         room = st.text_input("Room Number / Specific Area", placeholder="e.g. Room 304, 2nd Floor Restroom", key="room_key")
+
+        st.markdown("""
+        <div class="step-card" style="margin-top: 20px;">
+            <div class="step-header">
+                <span class="step-num">03</span> Describe Issue
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         issue_title = st.text_input("Issue Title", placeholder="e.g. Broken water pipe leaking on floor", key="title_key")
         description = st.text_area("Detailed Description of Problem", placeholder="Describe what you observed, sound, smell, or safety concerns...", height=120, key="desc_key")
-        
+
     with col2:
-        st.write("📷 **Upload or Capture Image (Optional)**")
+        st.markdown("""
+        <div class="step-card">
+            <div class="step-header">
+                <span class="step-num">02</span> Upload Evidence
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
         img_source = st.radio("Image Input Mode", ["Upload Image File", "Use Camera"], horizontal=True)
         uploaded_img = None
         
@@ -674,7 +986,7 @@ if navigation == "📝 Report New Issue":
                 uploaded_img = Image.open(camera_file)
                 st.image(uploaded_img, caption="Captured Image Preview", use_container_width=True)
 
-    submit_btn = st.button("🚀 Analyze & Submit with AI Triage", type="primary", use_container_width=True)
+    submit_btn = st.button("✨ Analyze & Submit with AI", type="primary", use_container_width=True)
     
     if submit_btn:
         if not issue_title or not description or not room:
@@ -700,6 +1012,7 @@ if navigation == "📝 Report New Issue":
                         "assigned_department": triage_res.get("assigned_department", "Facilities Operations"),
                         "status": "Pending",
                         "summary": triage_res.get("summary", "Issue reported."),
+                        "safety_hazards": triage_res.get("safety_hazards", []),
                         "suggested_action_plan": triage_res.get("suggested_action_plan", []),
                         "required_tools": triage_res.get("required_tools_equipment", []),
                         "estimated_repair_time": triage_res.get("estimated_repair_time", "1-2 hours"),
@@ -731,47 +1044,89 @@ if navigation == "📝 Report New Issue":
     if current_ticket:
         if "created_ticket_id" in st.session_state and st.session_state.created_ticket_id == current_ticket["ticket_id"]:
             st.success(f"🎉 Ticket Created! Ticket ID: **{st.session_state.created_ticket_id}**")
-    if current_ticket:
+            
         st.divider()
         urg = current_ticket.get("urgency", "Medium Priority")
         badge_class = "badge-medium"
+        badge_label = "MEDIUM"
         if "Emergency" in urg:
             badge_class = "badge-emergency"
+            badge_label = "🔴 EMERGENCY"
         elif "High" in urg:
             badge_class = "badge-high"
+            badge_label = "🔴 HIGH"
         elif "Low" in urg:
             badge_class = "badge-low"
+            badge_label = "🟢 LOW"
 
         st.markdown(f"""
-        <div class="triage-card">
-            <h3>🤖 Gemini AI Incident Triage Result [{current_ticket['ticket_id']}]</h3>
-            <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
-                <span class="{badge_class}">{urg}</span>
-                <span style="color: #94a3b8;">Urgency Score: <strong>{current_ticket.get('urgency_score', 5)}/10</strong></span>
-                <span style="color: #38bdf8;">Assigned: <strong>{current_ticket.get('assigned_department')}</strong></span>
+        <div class="triage-card-v2">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0; color: #f8fafc; font-size: 1.4rem; display: flex; align-items: center; gap: 8px;">
+                    🤖 AI Incident Triage
+                </h3>
+                <span style="font-family: monospace; background: #0f172a; border: 1px solid #38bdf8; color: #38bdf8; padding: 4px 12px; border-radius: 8px; font-weight: 700; font-size: 0.9rem;">
+                    Ticket ID: {current_ticket['ticket_id']}
+                </span>
             </div>
-            <p><strong>Executive Summary:</strong> {current_ticket.get('summary')}</p>
-            <p><strong>Estimated Repair Time:</strong> {current_ticket.get('estimated_repair_time')}</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                <div style="background: rgba(15,23,42,0.6); padding: 12px; border-radius: 10px; border: 1px solid #334155; text-align: center;">
+                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Priority</div>
+                    <div style="margin-top: 6px;"><span class="{badge_class}">{badge_label}</span></div>
+                </div>
+                <div style="background: rgba(15,23,42,0.6); padding: 12px; border-radius: 10px; border: 1px solid #334155; text-align: center;">
+                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Urgency Score</div>
+                    <div style="font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin-top: 2px;">{current_ticket.get('urgency_score', 5)}/10</div>
+                </div>
+                <div style="background: rgba(15,23,42,0.6); padding: 12px; border-radius: 10px; border: 1px solid #334155; text-align: center;">
+                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Category</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc; margin-top: 4px;">{current_ticket.get('category')}</div>
+                </div>
+                <div style="background: rgba(15,23,42,0.6); padding: 12px; border-radius: 10px; border: 1px solid #334155; text-align: center;">
+                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Est. Repair Time</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #38bdf8; margin-top: 4px;">{current_ticket.get('estimated_repair_time')}</div>
+                </div>
+            </div>
+            <div style="margin-bottom: 16px;">
+                <h4 style="color: #38bdf8; margin: 0 0 6px 0;">AI Executive Summary</h4>
+                <p style="color: #e2e8f0; line-height: 1.5; margin: 0;">{current_ticket.get('summary')}</p>
+            </div>
         </div>
         """, unsafe_allow_html=True)
         
         st.write("")
         col_a, col_b = st.columns(2)
         with col_a:
-            st.write("⚠️ **Safety Hazards & Precautions:**")
-            for h in current_ticket.get("safety_hazards", ["None reported."]):
-                st.info(f"• {h}")
+            st.markdown("""
+            <div class="action-card">
+                <h4 style="color: #fca5a5; margin-top: 0;">⚠️ Safety Hazards & Precautions</h4>
+            </div>
+            """, unsafe_allow_html=True)
+            for h in current_ticket.get("safety_hazards", ["No immediate safety hazard detected."]):
+                st.warning(f"• {h}")
         with col_b:
-            st.write("🛠️ **Recommended Technician Action Plan:**")
+            st.markdown("""
+            <div class="action-card">
+                <h4 style="color: #38bdf8; margin-top: 0;">🛠️ Recommended Technician Action Plan</h4>
+            </div>
+            """, unsafe_allow_html=True)
             for act in current_ticket.get("suggested_action_plan", []):
-                st.write(f"• {act}")
+                st.info(f"• {act}")
+
+        st.caption("* Disclaimer: AI triage recommendations are generated to assist facilities operations and do not replace official emergency response procedures.")
                 
-        # -----------------------------------------------------
+        # ---------------------------------------------------------
         # 📧 EMAIL DISPATCH SECTION
-        # -----------------------------------------------------
-        st.divider()
-        st.subheader("📧 Dispatch Official Maintenance Email")
-        st.write("Click below to send an official maintenance dispatch report via Resend Email API to campus facilities staff.")
+        # ---------------------------------------------------------
+        st.markdown("""
+        <div class="action-card">
+            <h4 style="color: #f8fafc; margin: 0 0 6px 0;">📧 Dispatch Official Maintenance Report</h4>
+            <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">
+                Send an official facilities dispatch report via Resend Email API directly to campus operations staff.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.write("")
         
         email_btn_col1, email_btn_col2 = st.columns([1, 2])
         with email_btn_col1:
@@ -783,15 +1138,19 @@ if navigation == "📝 Report New Issue":
                     else:
                         st.error(f"❌ Email sending failed: {email_msg}")
 
-        # -----------------------------------------------------
+        # ---------------------------------------------------------
         # 💬 REAL GEMINI MULTI-TURN CHAT SECTION
-        # -----------------------------------------------------
-        st.divider()
-        st.subheader("💬 Interactive Gemini AI Follow-up Chat")
-        st.write("Ask follow-up questions about this incident. The AI retains full context of the uploaded image, triage diagnosis, and safety findings.")
+        # ---------------------------------------------------------
+        st.markdown("""
+        <div class="action-card">
+            <h4 style="color: #38bdf8; margin: 0 0 4px 0;">💬 CampusFix AI Assistant</h4>
+            <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">Ask questions about this incident. The AI retains full context of the defect details, triage diagnosis, and safety findings.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.write("")
 
         # Preset suggestion chips
-        st.write("**Quick Example Prompts:**")
+        st.write("**Quick Actions:**")
         q_col1, q_col2, q_col3, q_col4 = st.columns(4)
         with q_col1:
             if st.button("❓ Is this dangerous?", use_container_width=True):
@@ -803,7 +1162,7 @@ if navigation == "📝 Report New Issue":
             if st.button("📄 Formal Complaint", use_container_width=True):
                 st.session_state.pending_chat_prompt = "Make the complaint more formal for campus management."
         with q_col4:
-            if st.button("🔍 Missing Info?", use_container_width=True):
+            if st.button("🔎 Missing Information?", use_container_width=True):
                 st.session_state.pending_chat_prompt = "What information is missing from this incident report?"
 
         # Display conversation history
@@ -812,7 +1171,7 @@ if navigation == "📝 Report New Issue":
                 st.markdown(msg["content"])
 
         # Process user chat input
-        user_prompt = st.chat_input("Ask Gemini follow-up questions about this maintenance issue...")
+        user_prompt = st.chat_input("Ask CampusFix AI follow-up questions about this maintenance issue...")
         if "pending_chat_prompt" in st.session_state and st.session_state.pending_chat_prompt:
             user_prompt = st.session_state.pending_chat_prompt
             del st.session_state.pending_chat_prompt
@@ -829,10 +1188,11 @@ if navigation == "📝 Report New Issue":
             st.session_state.chat_history.append({"role": "assistant", "content": ai_reply})
 
 # ---------------------------------------------------------
-# TAB 2: TICKET TRACKING & SEARCH
+# TAB 2: TICKET TRACKING
 # ---------------------------------------------------------
-elif navigation == "📋 Ticket Tracking & Search":
-    st.subheader("📋 Campus Ticket Search & Lifecycle Tracker")
+elif navigation == NAV_TRACKING:
+    st.subheader("📋 Ticket Tracking & Campus Search")
+    st.caption("Filter, monitor, and dispatch campus maintenance tickets across all campus facilities.")
     
     search_col, filter_col = st.columns([2, 1])
     with search_col:
@@ -850,26 +1210,29 @@ elif navigation == "📋 Ticket Tracking & Search":
             if sq in t["ticket_id"].lower() or sq in t["building"].lower() or sq in t["title"].lower() or sq in t["category"].lower()
         ]
         
-    st.write(f"Showing **{len(filtered_tickets)}** ticket(s):")
+    st.write(f"Displaying **{len(filtered_tickets)}** ticket(s):")
     
     for t in filtered_tickets:
         urg = t.get("urgency", "Medium Priority")
-        urg_color = "🔴" if "Emergency" in urg else ("🟠" if "High" in urg else ("🟡" if "Medium" in urg else "🟢"))
+        urg_badge = "🔴 HIGH" if any(k in urg for k in ["Emergency", "High"]) else ("🟡 MEDIUM" if "Medium" in urg else "🟢 LOW")
+        status_curr = t.get("status", "Pending")
+        status_color = "badge-status-pending" if status_curr == "Pending" else ("badge-status-inprog" if status_curr == "In Progress" else "badge-status-resolved")
         
-        with st.expander(f"{urg_color} [{t['ticket_id']}] {t['title']} — {t['building']} ({t['status']})"):
+        with st.expander(f"[{t['ticket_id']}] {t['title']} — {t['building']} ({t['status']})"):
             c1, c2, c3 = st.columns(3)
             with c1:
+                st.write(f"**Ticket ID:** `{t['ticket_id']}`")
                 st.write(f"**Reporter:** {t.get('reporter')}")
                 st.write(f"**Email:** {t.get('reporter_email', 'N/A')}")
-                st.write(f"**Date/Time:** {t.get('timestamp')}")
-                st.write(f"**Building/Room:** {t.get('building')} - {t.get('room')}")
+                st.write(f"**Date:** {t.get('timestamp')}")
             with c2:
+                st.write(f"**Location:** {t.get('building')} ({t.get('room')})")
                 st.write(f"**Category:** {t.get('category')}")
-                st.write(f"**Urgency:** {t.get('urgency')} (Score: {t.get('urgency_score')}/10)")
-                st.write(f"**Assigned Department:** {t.get('assigned_department')}")
+                st.write(f"**Priority:** {urg_badge}")
+                st.write(f"**Assigned Dept:** {t.get('assigned_department')}")
             with c3:
-                st.write(f"**Status:** {t.get('status')}")
-                st.write(f"**Est. Repair Time:** {t.get('estimated_repair_time')}")
+                st.write(f"**Status:** <span class='{status_color}'>{status_curr}</span>", unsafe_allow_html=True)
+                st.write(f"**Est. Repair:** {t.get('estimated_repair_time')}")
                 
             st.divider()
             st.write(f"**Description:** {t.get('description')}")
@@ -882,7 +1245,7 @@ elif navigation == "📋 Ticket Tracking & Search":
             if t.get("technician_notes"):
                 st.info(f"🛠️ **Technician Log Note:** {t['technician_notes']}")
                 
-            if st.button(f"📧 Send Email Report for {t['ticket_id']}", key=f"email_{t['ticket_id']}"):
+            if st.button(f"📧 Dispatch Email Report for {t['ticket_id']}", key=f"email_{t['ticket_id']}"):
                 with st.spinner("Dispatching email..."):
                     ok, res_msg = send_maintenance_email(t)
                     if ok:
@@ -893,37 +1256,44 @@ elif navigation == "📋 Ticket Tracking & Search":
 # ---------------------------------------------------------
 # TAB 3: TECHNICIAN WORKSTATION
 # ---------------------------------------------------------
-elif navigation == "🛠️ Technician Workstation":
-    st.subheader("🛠️ Facilities Maintenance Dispatch & Task Control")
-    st.write("Manage active tickets, update resolution status, and request real-time Gemini AI diagnostic guidance.")
+elif navigation == NAV_WORKSTATION:
+    st.subheader("🛠️ Technician Workstation & Dispatch Operations")
+    st.caption("Facilities maintenance operations console to update resolution status and consult AI technical diagnostics.")
     
     pending_count = sum(1 for t in st.session_state.tickets if t.get("status") == "Pending")
     in_prog_count = sum(1 for t in st.session_state.tickets if t.get("status") == "In Progress")
     resolved_count = sum(1 for t in st.session_state.tickets if t.get("status") == "Resolved")
     
     col_m1, col_m2, col_m3 = st.columns(3)
-    col_m1.markdown(f'<div class="metric-card"><div class="metric-value" style="color:#f97316;">{pending_count}</div><div class="metric-label">Pending Dispatch</div></div>', unsafe_allow_html=True)
-    col_m2.markdown(f'<div class="metric-card"><div class="metric-value" style="color:#eab308;">{in_prog_count}</div><div class="metric-label">In Progress</div></div>', unsafe_allow_html=True)
-    col_m3.markdown(f'<div class="metric-card"><div class="metric-value" style="color:#22c55e;">{resolved_count}</div><div class="metric-label">Completed / Resolved</div></div>', unsafe_allow_html=True)
+    col_m1.markdown(f'<div class="kpi-card"><div class="kpi-label">PENDING DISPATCH</div><div class="kpi-value" style="color:#f97316;">{pending_count}</div></div>', unsafe_allow_html=True)
+    col_m2.markdown(f'<div class="kpi-card"><div class="kpi-label">IN PROGRESS</div><div class="kpi-value" style="color:#f59e0b;">{in_prog_count}</div></div>', unsafe_allow_html=True)
+    col_m3.markdown(f'<div class="kpi-card"><div class="kpi-label">RESOLVED / CLOSED</div><div class="kpi-value" style="color:#22c55e;">{resolved_count}</div></div>', unsafe_allow_html=True)
     
-    st.divider()
+    st.write("")
     
     ticket_ids = [f"{t['ticket_id']} - {t['title']} ({t['building']})" for t in st.session_state.tickets]
-    selected_ticket_str = st.selectbox("Select Ticket to Manage", ticket_ids)
+    selected_ticket_str = st.selectbox("Select Active Ticket to Manage", ticket_ids)
     
     if selected_ticket_str:
         sel_id = selected_ticket_str.split(" - ")[0]
         ticket = next((t for t in st.session_state.tickets if t["ticket_id"] == sel_id), None)
         
         if ticket:
-            st.markdown(f"### Ticket Details: **{ticket['ticket_id']}**")
+            st.markdown(f"""
+            <div class="triage-card-v2" style="margin-top: 10px;">
+                <h3 style="margin:0; color:#f8fafc;">Workstation Console: Ticket {ticket['ticket_id']}</h3>
+                <p style="color:#94a3b8; margin-top:4px;">Location: <strong>{ticket['building']} - {ticket['room']}</strong> | Category: <strong>{ticket['category']}</strong> | Est. Repair: <strong>{ticket.get('estimated_repair_time')}</strong></p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.write("")
             
-            c_edit1, c_edit2 = st.columns([1, 1])
+            c_edit1, c_edit2 = st.columns([1, 1], gap="large")
             with c_edit1:
-                new_status = st.selectbox("Update Status", ["Pending", "In Progress", "Resolved"], index=["Pending", "In Progress", "Resolved"].index(ticket.get("status", "Pending")))
-                tech_note = st.text_area("Technician Log Notes", value=ticket.get("technician_notes", ""), placeholder="Enter parts used, work completed, or next steps...")
+                st.markdown("#### 📝 Update Status & Technician Notes")
+                new_status = st.selectbox("Status Update", ["Pending", "In Progress", "Resolved"], index=["Pending", "In Progress", "Resolved"].index(ticket.get("status", "Pending")))
+                tech_note = st.text_area("Technician Log Notes", value=ticket.get("technician_notes", ""), placeholder="Enter parts used, work completed, or next steps...", height=120)
                 
-                if st.button("💾 Save Status & Notes", type="primary"):
+                if st.button("💾 Save Status & Notes", type="primary", use_container_width=True):
                     ticket["status"] = new_status
                     ticket["technician_notes"] = tech_note
                     save_tickets(st.session_state.tickets)
@@ -931,11 +1301,11 @@ elif navigation == "🛠️ Technician Workstation":
                     st.rerun()
 
             with c_edit2:
-                st.write("🤖 **AI Technical Diagnostic Assistant**")
+                st.markdown("#### 🤖 AI Technical Diagnostic Assistant")
                 st.caption("Ask Gemini AI for step-by-step repair guidance or tool recommendations for this specific ticket.")
                 tech_query = st.text_input("Ask Technical Question", placeholder="e.g., What is the safest way to isolate this breaker?")
                 
-                if st.button("💡 Ask AI Technical Advisor"):
+                if st.button("💡 Ask AI Technical Advisor", use_container_width=True):
                     if not tech_query:
                         st.warning("Please type a question for the technician assistant.")
                     else:
@@ -962,32 +1332,47 @@ elif navigation == "🛠️ Technician Workstation":
 # ---------------------------------------------------------
 # TAB 4: ANALYTICS & AI INSIGHTS
 # ---------------------------------------------------------
-elif navigation == "📊 Analytics & AI Insights":
-    st.subheader("📊 Campus Infrastructure Analytics & Operations Insights")
+elif navigation == NAV_ANALYTICS:
+    st.subheader("📊 Analytics & AI Insights Dashboard")
+    st.caption("Operational analytics, priority distribution, and strategic AI maintenance health insights.")
     
     df = pd.DataFrame(st.session_state.tickets)
     
     if not df.empty:
-        col_g1, col_g2 = st.columns(2)
+        col_g1, col_g2 = st.columns(2, gap="large")
         
         with col_g1:
-            st.write("📈 **Issues by Department Category**")
+            st.markdown("""
+            <div class="action-card">
+                <h4 style="margin: 0 0 10px 0; color: #f8fafc;">Operational Overview: Issues by Category</h4>
+            </div>
+            """, unsafe_allow_html=True)
             fig_cat = px.pie(df, names="category", hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
-            fig_cat.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#f8fafc")
+            fig_cat.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#f8fafc", margin=dict(t=20, b=20, l=20, r=20))
             st.plotly_chart(fig_cat, use_container_width=True)
             
         with col_g2:
-            st.write("🏢 **Incident Volume by Campus Building**")
+            st.markdown("""
+            <div class="action-card">
+                <h4 style="margin: 0 0 10px 0; color: #f8fafc;">Incident Volume by Campus Building</h4>
+            </div>
+            """, unsafe_allow_html=True)
             building_counts = df["building"].value_counts().reset_index()
             building_counts.columns = ["building", "count"]
             fig_bldg = px.bar(building_counts, x="count", y="building", orientation='h', color="count", color_continuous_scale="Viridis")
-            fig_bldg.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#f8fafc", yaxis={'categoryorder':'total ascending'})
+            fig_bldg.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#f8fafc", yaxis={'categoryorder':'total ascending'}, margin=dict(t=20, b=20, l=20, r=20))
             st.plotly_chart(fig_bldg, use_container_width=True)
 
-        st.divider()
+        st.write("")
+        st.markdown("""
+        <div class="action-card">
+            <h4 style="color: #38bdf8; margin: 0 0 6px 0;">🧠 AI Infrastructure Insights</h4>
+            <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">Generate an executive strategic summary of campus incident trends using Gemini AI.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.write("")
         
-        st.subheader("🧠 Executive AI Strategic Maintenance Report")
-        if st.button("✨ Generate AI Infrastructure Health Insights", type="primary"):
+        if st.button("✨ Generate AI Infrastructure Health Insights", type="primary", use_container_width=True):
             with st.spinner("Analyzing historical ticket patterns with Gemini AI..."):
                 report_md = generate_ai_insights(get_api_key(), df)
                 st.markdown(report_md)
@@ -995,31 +1380,66 @@ elif navigation == "📊 Analytics & AI Insights":
 # ---------------------------------------------------------
 # TAB 5: SELF-HELP KNOWLEDGE BASE
 # ---------------------------------------------------------
-elif navigation == "💡 Self-Help Knowledge Base":
-    st.subheader("💡 Campus Self-Help & Non-Emergency FAQ")
-    st.write("Check these standard protocols before submitting a formal maintenance request.")
+elif navigation == NAV_KNOWLEDGE:
+    st.subheader("💡 Self-Help Knowledge Base")
+    st.caption("Searchable facilities self-help cards and standard campus troubleshooting protocols.")
     
-    with st.expander("📶 Campus Wi-Fi Connection Troubleshooting"):
-        st.write("""
-        1. **Forget Network**: Go to Wi-Fi settings on your device and select 'Forget eduroam' or 'Campus-Guest'.
-        2. **Re-authenticate**: Re-enter your campus netID username (username@campus.edu) and current password.
-        3. **MAC Address Privacy**: On iOS/Android, turn off 'Private Wi-Fi Address' for campus network authentication.
-        """)
-        
-    with st.expander("🔑 Electronic Dorm Keycard Lock Unresponsive"):
-        st.write("""
-        1. **Check Battery LED**: Swiping keycard: Red flash = Low battery lock; No light = Dead battery lock.
-        2. **Temporary Entry**: Contact your Resident Advisor (RA) on duty or Housing Office (Ext 4400) for a physical master key lockout.
-        """)
-        
-    with st.expander("🌡️ Dorm Room Thermostat Controls"):
-        st.write("""
-        • Central campus HVAC maintains temperatures between 68°F and 74°F.
-        • Ensure windows and exterior doors are fully sealed; open windows disable individual room fan coils automatically.
-        """)
+    st.write("")
+    
+    kb_col1, kb_col2 = st.columns(2, gap="large")
+    
+    with kb_col1:
+        with st.expander("🔌 Electrical & Lighting Safety Protocols"):
+            st.write("""
+            • **Tripped Breaker**: Check if outlets in lab or dorm room tripped. Reset wall GFCI outlet buttons before filing report.
+            • **Exposed Wiring**: Do NOT touch bare wires under any circumstances. Clear immediate area and report via high priority triage.
+            • **Flickering Overhead Fixture**: Fixtures on emergency circuits may flicker during generator self-tests on Monday mornings.
+            """)
+
+        with st.expander("💧 Plumbing & Water Leak Response"):
+            st.write("""
+            • **Active Flooding**: Locate wall shutoff valve under sink or behind toilet and turn clockwise to stop main flow.
+            • **Clogged Drain**: Avoid hazardous chemical drain cleaners in campus dorms; report to plumbing team for mechanical snake clearing.
+            """)
+
+        with st.expander("🌐 Network & Campus Connectivity"):
+            st.write("""
+            • **Wi-Fi Re-authentication**: Forget 'eduroam' network in Wi-Fi settings and re-login with full campus email.
+            • **Ethernet Wall Jack**: Verify CAT6 cable clip is securely seated until audible click is heard.
+            """)
+
+        with st.expander("🪑 Furniture & Fixture Care"):
+            st.write("""
+            • **Desk/Chair Adjustment**: Use under-seat tension knob to adjust hydraulic desk chair height safely.
+            • **Loose Bolts**: File routine carpenter ticket for wobbling bedframes or study desks.
+            """)
+
+    with kb_col2:
+        with st.expander("🧹 Cleaning & Sanitation Services"):
+            st.write("""
+            • **Spill Cleanup**: Custodial services provide immediate response for biohazard or large liquids in public walkways.
+            • **Trash Overflow**: Main waste receptacles in hallways are cleared twice daily at 08:00 and 16:00.
+            """)
+
+        with st.expander("🏗️ Infrastructure & Facilities Support"):
+            st.write("""
+            • **Elevator Maintenance**: For unresponsive elevator doors, push alarm button to alert campus security immediately.
+            • **Door Lock & Access**: Keycard reader red light indicates low internal battery. Contact Housing Office Ext 4400.
+            """)
+
+        with st.expander("🛡️ Campus Safety & Emergency Numbers"):
+            st.write("""
+            • **Campus Police Dispatch**: Ext 911 / (555) 019-2831
+            • **Facilities Operations Hotline**: Ext 4400
+            • **Environmental Health & Safety (EHS)**: Ext 4420
+            """)
 
 # ---------------------------------------------------------
-# Footer
+# FOOTER
 # ---------------------------------------------------------
 st.divider()
-st.caption("CampusFix-AI Platform • Powered by Streamlit & Google Gemini AI • Campus Operations & Facilities Management")
+st.markdown("""
+<div style="text-align: center; color: #64748b; font-size: 0.82rem; padding: 10px 0;">
+    <strong>CampusFix Platform</strong> • "See it. Report it. Fix it." • Powered by Streamlit & Google Gemini AI
+</div>
+""", unsafe_allow_html=True)
