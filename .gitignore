@@ -1,0 +1,40 @@
+# Streamlit secrets & local configuration
+.streamlit/secrets.toml
+.streamlit/config.toml
+
+# Python & Environment files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Data persistence files
+tickets.json
+*.db
+*.sqlite
+
+# IDE & System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
